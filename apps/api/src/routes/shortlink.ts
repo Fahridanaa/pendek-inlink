@@ -35,7 +35,7 @@ shortlinkRoutes.post("/api/shorten-html", async (c) => {
   if ("error" in result) {
     return c.html(`
       <div class="neo-card bg-red-100">
-        <p class="font-bold text-red-600">❌ Error: ${result.error}</p>
+        <p class="font-bold text-red-600">Gagal: ${result.error}</p>
       </div>
     `);
   }
