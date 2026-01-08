@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pendekinLink</title>
+
+  <meta name="description" content="Shorten URL Slop" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="p-6 md:p-8 border-b-4 border-black bg-black">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl text-6xl@md text-white">
+        PendekInLink
+      </h1>
+    </div>
+  </header>
+
+  <main class="flex-1 p-6 md:p-8 bg-[#f4f4f0]">
+    <div class="max-w-4xl mx-auto my-12 sm:my-24">
+        <div class="neo-card mb-8">
+          <form
+            hx-post="/api/shorten-html"
+            hx-target="#result"
+            hx-swap="innerHTML"
+            hx-indicator="#loading"
+            class="space-y-4"
+          >
+            <div>
+              <input
+                type="url"
+                name="url"
+                class="neo-input"
+                placeholder="http://example.com/masukkin-link-mu-yang-panjang-itu"
+                required
+                autocomplete="off"
+              >
+            </div>
+
+            <div class="flex gap-4 items-center">
+              <button type="submit" class="neo-btn">
+                PENDEKIN!!!
+              </button>
+
+              <span id="loading" class="htmx-indicator font-bold text-lg">
+                Prosesss...
+              </span>
+            </div>
+          </form>
+      </div>
+      <div id="result">
+      </div>
+    </div>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

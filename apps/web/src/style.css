@@ -1,0 +1,137 @@
+@import 'tailwindcss';
+
+:root {
+  --primary: #000000;
+  --secondary: #FFFF00;
+  --accent: #FF00FF;
+  --bg: #FFFFFF;
+  --border-width: 4px;
+  --shadow-offset: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--primary);
+  min-height: 100vh;
+}
+
+.neo-btn {
+  background: var(--secondary);
+  border: var(--border-width) solid var(--primary);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--primary);
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 1rem 2rem;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  font-size: 1.125rem;
+  letter-spacing: 0.05em;
+}
+
+.neo-btn:hover {
+  box-shadow: 4px 4px 0 var(--primary);
+  transform: translate(4px, 4px);
+}
+
+.neo-btn:active {
+  box-shadow: 0 0 0 var(--primary);
+  transform: translate(var(--shadow-offset), var(--shadow-offset));
+}
+
+.neo-input {
+  background: var(--bg);
+  border: var(--border-width) solid var(--primary);
+  padding: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.neo-input:focus {
+  outline: none;
+  box-shadow: 4px 4px 0 var(--accent);
+  transform: translate(-2px, -2px);
+}
+
+.neo-input::placeholder {
+  color: #999;
+}
+
+.neo-card {
+  background: var(--bg);
+  border: var(--border-width) solid var(--primary);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--primary);
+  padding: 2rem;
+  position: relative;
+}
+
+.neo-badge {
+  background: var(--accent);
+  border: 3px solid var(--primary);
+  padding: 0.5rem 1rem;
+  font-weight: 900;
+  display: inline-block;
+  box-shadow: 4px 4px 0 var(--primary);
+}
+
+.neo-copy-btn {
+  background: var(--bg);
+  border: 3px solid var(--primary);
+  box-shadow: 4px 4px 0 var(--primary);
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+}
+
+.neo-copy-btn:hover {
+  box-shadow: 2px 2px 0 var(--primary);
+  transform: translate(2px, 2px);
+}
+
+.neo-copy-btn:active {
+  box-shadow: 0 0 0 var(--primary);
+  transform: translate(4px, 4px);
+}
+
+.neo-copy-btn.copied {
+  background: #00FF00;
+  color: var(--primary);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.shake {
+  animation: shake 0.3s ease;
+}
+
+.htmx-request .htmx-indicator {
+  display: inline;
+}
+
+.htmx-indicator {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .neo-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .neo-card {
+    padding: 1.5rem;
+  }
+}
