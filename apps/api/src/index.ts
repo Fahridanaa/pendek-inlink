@@ -1,5 +1,11 @@
-import { Effect, Console } from "effect";
+import { serve } from "@hono/node-server";
+import app from "./app.js";
 
-const program = Console.log("Hello, World!");
+const port = 4000;
 
-Effect.runSync(program);
+console.log(`Server starting on http://localhost:${port}`);
+
+serve({
+  fetch: app.fetch,
+  port,
+});
