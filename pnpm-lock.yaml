@@ -13,6 +13,12 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.6
         version: 1.19.7(hono@4.11.3)
+      db:
+        specifier: workspace:^
+        version: link:../../packages/db
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(postgres@3.4.8)
       effect:
         specifier: ^3.19.14
         version: 3.19.14

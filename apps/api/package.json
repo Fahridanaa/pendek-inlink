@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
+    "db": "workspace:^",
+    "drizzle-orm": "^0.45.1",
     "effect": "^3.19.14",
     "hono": "^4.11.3",
     "postgres": "^3.4.8",
