@@ -108,7 +108,63 @@ shortlinkRoutes.get("/:code", redirectLimiter, async (c) => {
   );
 
   if (!result) {
-    return c.notFound();
+    return c.html(
+      `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Link Not Found - PendekInLink</title>
+          <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Space Grotesk', sans-serif;
+              background: #f4f4f0;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 2rem;
+            }
+            .container {
+              background: white;
+              border: 4px solid black;
+              box-shadow: 8px 8px 0 black;
+              padding: 3rem;
+              max-width: 600px;
+              text-align: center;
+            }
+            h1 { font-size: 4rem; font-weight: 900; margin-bottom: 1rem; }
+            p { font-size: 1.2rem; font-weight: 600; margin-bottom: 2rem; }
+            a {
+              background: #FFFF00;
+              border: 4px solid black;
+              box-shadow: 4px 4px 0 black;
+              padding: 1rem 2rem;
+              font-weight: 900;
+              text-transform: uppercase;
+              text-decoration: none;
+              color: black;
+              display: inline-block;
+            }
+            a:hover {
+              box-shadow: 2px 2px 0 black;
+              transform: translate(2px, 2px);
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>404</h1>
+            <p>Link nggak ditemukan! Mungkin salah ketik atau udah dihapus.</p>
+            <a href="http://localhost:3000">BUAT LINK BARU</a>
+          </div>
+        </body>
+        </html>
+      `,
+      404,
+    );
   }
 
   if (skipCountdown) {
