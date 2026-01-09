@@ -1,10 +1,25 @@
 import { Hono } from "hono";
 import { Effect } from "effect";
 import { generateUniqueCode, createShortlink, getAndRedirect } from "../services/shortlink.js";
+import { createRateLimiter } from "../middleware/rateLimiter.js";
 
 export const shortlinkRoutes = new Hono();
 
-shortlinkRoutes.post("/api/shorten-html", async (c) => {
+const shortenLimiter = createRateLimiter({
+  windowMs: 60 * 1000, // 1 menit
+  limit: 10,
+  message: "Terlalu banyak request! Tunggu 1 menit ya.",
+  keyType: "ip",
+});
+
+const redirectLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  limit: 100,
+  message: "Terlalu banyak klik! Tunggu sebentar.",
+  keyType: "ip+code",
+});
+
+shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
   const body = await c.req.parseBody();
   const url = body.url as string;
 
@@ -76,7 +91,7 @@ shortlinkRoutes.post("/api/shorten-html", async (c) => {
   `);
 });
 
-shortlinkRoutes.get("/:code", async (c) => {
+shortlinkRoutes.get("/:code", redirectLimiter, async (c) => {
   const code = c.req.param("code");
   const skipCountdown = c.req.query("direct") === "true";
 
