@@ -31,7 +31,7 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
 
       return {
         code: shortlink.code,
-        shortUrl: `http://localhost:4000/${shortlink.code}`,
+        shortUrl: `${process.env.BASE_URL}/${shortlink.code}`,
         originalUrl: shortlink.url,
       };
     }).pipe(
