@@ -16,5 +16,6 @@
   "workspace": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "packageManager": "pnpm@8.15.9"
 }

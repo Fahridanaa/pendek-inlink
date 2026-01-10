@@ -7,8 +7,7 @@ build/
 docs/
 .direnv/
 .idea/
+*.log
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.production
