@@ -8,7 +8,3 @@ Shorten URL Slop
 - **API backend** : Hono
 - **Web frontend**: HTMX + Alpine.js
 - **Database**: PostgreSQL
-
-## bentukan websitenya
-
-![pendek-inlink](screenshot.png)
