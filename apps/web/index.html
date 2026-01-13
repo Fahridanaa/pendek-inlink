@@ -13,7 +13,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet" />
   </head>
   <body class="min-h-screen flex flex-col">
-    <!-- Header -->
     <header class="p-6 md:p-8 border-b-4 border-black bg-black">
       <div class="max-w-4xl mx-auto">
         <h1 class="text-4xl text-6xl@md text-white">PendekInLink</h1>
@@ -24,10 +23,10 @@
       <div class="max-w-4xl mx-auto my-12 sm:my-24">
         <div class="neo-card mb-8">
           <form
+            id="shorten-form"
             hx-post="/api/shorten-html"
             hx-target="#result"
             hx-swap="innerHTML"
-            hx-indicator="#loading"
             hx-target-error="#modal-container"
             class="space-y-4"
           >
@@ -43,9 +42,10 @@
             </div>
 
             <div class="flex gap-4 items-center">
-              <button type="submit" class="neo-btn">PENDEKIN!!!</button>
-
-              <span id="loading" class="htmx-indicator font-bold text-lg"> Prosesss... </span>
+              <button type="submit" id="submit-btn" class="neo-btn">
+                <span class="btn-text">PENDEKIN!!!</span>
+                <span class="btn-loading" style="display: none">Prosesss...</span>
+              </button>
             </div>
           </form>
         </div>
@@ -54,6 +54,27 @@
     </main>
     <script type="module" src="/src/main.ts"></script>
     <script>
+      const form = document.getElementById("shorten-form");
+      const button = document.getElementById("submit-btn");
+      const btnText = button.querySelector(".btn-text");
+      const btnLoading = button.querySelector(".btn-loading");
+
+      document.body.addEventListener("htmx:beforeRequest", function (evt) {
+        if (evt.detail.elt === form) {
+          button.disabled = true;
+          btnText.style.display = "none";
+          btnLoading.style.display = "inline";
+        }
+      });
+
+      document.body.addEventListener("htmx:afterRequest", function (evt) {
+        if (evt.detail.elt === form) {
+          button.disabled = false;
+          btnText.style.display = "inline";
+          btnLoading.style.display = "none";
+        }
+      });
+
       document.body.addEventListener("htmx:responseError", function (evt) {
         if (evt.detail.xhr.status === 429) {
           const html = evt.detail.xhr.responseText;

@@ -1,10 +1,10 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 :root {
   --primary: #000000;
-  --secondary: #FFFF00;
-  --accent: #FF00FF;
-  --bg: #FFFFFF;
+  --secondary: #ffff00;
+  --accent: #ff00ff;
+  --bg: #ffffff;
   --border-width: 4px;
   --shadow-offset: 8px;
 }
@@ -14,7 +14,10 @@
 }
 
 body {
-  font-family: 'Space Grotesk', -apple-system, sans-serif;
+  font-family:
+    "Space Grotesk",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--primary);
   min-height: 100vh;
@@ -41,6 +44,12 @@ body {
 .neo-btn:active {
   box-shadow: 0 0 0 var(--primary);
   transform: translate(var(--shadow-offset), var(--shadow-offset));
+}
+
+.neo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .neo-input {
@@ -103,14 +112,21 @@ body {
 }
 
 .neo-copy-btn.copied {
-  background: #00FF00;
+  background: #00ff00;
   color: var(--primary);
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
 }
 
 .shake {
@@ -122,6 +138,18 @@ body {
 }
 
 .htmx-indicator {
+  display: none;
+}
+
+.btn-loading {
+  display: none;
+}
+
+.htmx-request .btn-loading {
+  display: inline;
+}
+
+.htmx-request .btn-text {
   display: none;
 }
 
