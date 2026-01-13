@@ -1,0 +1,31 @@
+<!--
+  Tailwind Contract File
+  This file contains all Tailwind classes used in API route HTML responses
+  to ensure they are included in the final CSS bundle.
+  DO NOT DELETE - Required for style generation
+-->
+
+<div class="hidden">
+  <!-- Classes from /api/shorten-html success response -->
+  <div class="neo-card bg-yellow-100"></div>
+  <h3 class="text-2xl font-black mb-4"></h3>
+  <div class="space-y-4"></div>
+  <label class="font-bold text-sm uppercase block mb-2"></label>
+  <div class="flex gap-2"></div>
+  <input class="neo-input flex-1" />
+
+  <!-- Classes from /api/shorten-html error response -->
+  <div class="neo-card bg-red-100"></div>
+  <p class="font-bold text-red-600"></p>
+
+  <!-- Classes from rateLimiter middleware modal -->
+  <div class="fixed inset-0 flex items-center justify-center z-1 p-4"></div>
+  <div class="bg-black opacity-50 absolute inset-0"></div>
+  <div class="neo-card bg-red-100 max-w-md w-full"></div>
+  <h3 class="text-2xl font-black text-red-600 mb-4"></h3>
+  <p class="font-bold mb-4"></p>
+  <div class="bg-white border-4 border-black p-4 mb-4"></div>
+  <p class="text-sm mb-2 font-bold"></p>
+  <p class="font-black text-5xl text-center"></p>
+  <button class="neo-btn w-full"></button>
+</div>

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-@source "../index.html";
+@source "./../index.html";
 @source "./**/*.{js,ts,jsx,tsx}";
-@source "../../api/src/**/*.{js,ts}";
+@source "./tw-contract.html";
 
 :root {
   --primary: #000000;
