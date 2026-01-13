@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@source "../index.html";
+@source "./**/*.{js,ts,jsx,tsx}";
+@source "../../api/src/**/*.{js,ts}";
+
 :root {
   --primary: #000000;
   --secondary: #ffff00;
