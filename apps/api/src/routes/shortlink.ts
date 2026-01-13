@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { Effect } from "effect";
-import { generateUniqueCode, createShortlink, getAndRedirect } from "../services/shortlink.js";
+import { generateUniqueCode, createShortlink, getAndRedirect, createOrGetShortlink } from "../services/shortlink.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
+import { normalizeUrl } from "../utils/codeGenerator.js";
 
 export const shortlinkRoutes = new Hono();
 
@@ -23,18 +24,22 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
   const body = await c.req.parseBody();
   const url = body.url as string;
 
+  if (!url) {
+    return c.html(`<div class="neo-card bg-red-100">Error: Butuh URL</div>`, 400);
+  }
+
+  const normalizedUrl = normalizeUrl(url);
+
   const result = await Effect.runPromise(
-    Effect.gen(function* () {
-      const code = yield* generateUniqueCode.pipe(Effect.retry({ times: 3 }), Effect.timeout("5 seconds"));
-
-      const shortlink = yield* createShortlink(code, url);
-
-      return {
+    createOrGetShortlink(normalizedUrl).pipe(
+      Effect.retry({ times: 3 }),
+      Effect.timeout("5 seconds"),
+      Effect.map((shortlink) => ({
         code: shortlink.code,
         shortUrl: `${process.env.BASE_URL}/${shortlink.code}`,
         originalUrl: shortlink.url,
-      };
-    }).pipe(
+        isNew: shortlink.isNew,
+      })),
       Effect.catchAll((error) =>
         Effect.succeed({
           error: "Failed to shorten URL",
@@ -45,21 +50,26 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
   );
 
   if ("error" in result) {
-    return c.html(`
+    return c.html(
+      `
       <div class="neo-card bg-red-100">
         <p class="font-bold text-red-600">Gagal: ${result.error}</p>
       </div>
-    `);
+    `,
+      500,
+    );
   }
+
+  const message = result.isNew ? "Berhasil!" : "Link ini sudah ada!";
 
   return c.html(`
     <div class="neo-card bg-yellow-100" x-data="{ copied: false }">
-      <h3 class="text-2xl font-black mb-4">Berhasil!</h3>
+      <h3 class="text-2xl font-black mb-4">${message}</h3>
 
       <div class="space-y-4">
         <div>
           <label class="font-bold text-sm uppercase block mb-2">
-          versi pendek link mu:
+          versi pendek link:
           </label>
           <div class="flex gap-2">
             <input

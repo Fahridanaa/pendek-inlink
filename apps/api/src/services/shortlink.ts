@@ -1,5 +1,10 @@
 import { Effect, Data } from "effect";
-import { findShortlinkByCode, createShortlink as createShortlinkRepo, incrementClickCount as incrementClickCountRepo } from "../repositories/shortlink.js";
+import {
+  findShortlinkByCode,
+  createShortlink as createShortlinkRepo,
+  incrementClickCount as incrementClickCountRepo,
+  findShortlinkByUrl,
+} from "../repositories/shortlink.js";
 import { generateCode } from "../utils/codeGenerator.js";
 
 class DatabaseError extends Data.TaggedError("DatabaseError")<{
@@ -53,4 +58,32 @@ export const getAndRedirect = (code: string) =>
     Effect.runFork(incrementClickCount(code));
 
     return shortlink.url;
+  });
+
+export const createOrGetShortlink = (url: string) =>
+  Effect.gen(function* () {
+    const existing = yield* Effect.tryPromise({
+      try: () => findShortlinkByUrl(url),
+      catch: (error) => new DatabaseError({ cause: error }),
+    });
+
+    if (existing) {
+      return {
+        code: existing.code,
+        url: existing.url,
+        clicks: existing.clicks,
+        isNew: false,
+      };
+    }
+
+    const code = yield* generateUniqueCode;
+
+    const newShortlink = yield* createShortlink(code, url);
+
+    return {
+      code: newShortlink.code,
+      url: newShortlink.url,
+      clicks: newShortlink.clicks || 0,
+      isNew: true,
+    };
   });

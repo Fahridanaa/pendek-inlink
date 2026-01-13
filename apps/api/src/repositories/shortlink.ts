@@ -7,6 +7,12 @@ export function findShortlinkByCode(code: string) {
   });
 }
 
+export async function findShortlinkByUrl(url: string) {
+  const result = await db.select().from(shortlinks).where(eq(shortlinks.url, url)).limit(1);
+
+  return result[0] || null;
+}
+
 export function createShortlink(code: string, url: string) {
   return db.insert(shortlinks).values({ code, url }).returning();
 }
