@@ -36,6 +36,7 @@ const createNewShortlink = (normalizedUrl: string) =>
     return yield* createShortlinkRepo(code, normalizedUrl);
   });
 
+// public
 // ini 2 biji pass through dari repo (gada logic jir)
 export const createShortlink = createShortlinkRepo;
 export const incrementClickCount = incrementClickCountRepo;
