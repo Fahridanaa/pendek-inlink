@@ -1,121 +1,114 @@
 import { Hono } from "hono";
-import { Effect } from "effect";
-import { generateUniqueCode, createShortlink, getAndRedirect, createOrGetShortlink } from "../services/shortlink.js";
+import { Effect, Schema } from "effect";
+import { AppConfigLive } from "../config/index.js";
+import { RequestParseError } from "../domain/errors.js";
+import { getAndRedirect, createOrGetShortlink } from "../services/shortlink.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
-import { normalizeUrl } from "../utils/codeGenerator.js";
+import { renderShortenSuccess, renderError } from "../views/shortlink.js";
+
+const ONE_MINUTE_MS = 60 * 1000;
+const SHORTEN_RATE_LIMIT = 10;
+const REDIRECT_RATE_LIMIT = 100;
+
+type ShortenResult =
+  | {
+      code: string;
+      shortUrl: string;
+      clicks: number;
+      isNew: boolean;
+    }
+  | {
+      error: string;
+      status: 400 | 500 | 503;
+    };
+
+const ShortenRequestSchema = Schema.Struct({
+  url: Schema.String.pipe(Schema.nonEmptyString()),
+});
+
+const validateShortenRequest = (data: unknown) => Schema.decodeUnknown(ShortenRequestSchema)(data);
 
 export const shortlinkRoutes = new Hono();
 
 const shortenLimiter = createRateLimiter({
-  windowMs: 60 * 1000, // 1 menit
-  limit: 10,
+  windowMs: ONE_MINUTE_MS,
+  limit: SHORTEN_RATE_LIMIT,
   message: "Terlalu banyak request! Tunggu 1 menit ya.",
   keyType: "ip",
 });
 
 const redirectLimiter = createRateLimiter({
-  windowMs: 60 * 1000,
-  limit: 100,
+  windowMs: ONE_MINUTE_MS,
+  limit: REDIRECT_RATE_LIMIT,
   message: "Terlalu banyak klik! Tunggu sebentar.",
   keyType: "ip+code",
 });
 
 shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
-  const body = await c.req.parseBody();
-  const url = body.url as string;
+  const bodyEffect = Effect.tryPromise({
+    try: () => c.req.parseBody(),
+    catch: (e) => new RequestParseError({ cause: e }),
+  });
 
-  if (!url) {
-    return c.html(`<div class="neo-card bg-red-100">Error: Butuh URL</div>`, 400);
-  }
-
-  const normalizedUrl = normalizeUrl(url);
-
-  const result = await Effect.runPromise(
-    createOrGetShortlink(normalizedUrl).pipe(
-      Effect.retry({ times: 3 }),
-      Effect.timeout("5 seconds"),
-      Effect.map((shortlink) => ({
-        code: shortlink.code,
-        shortUrl: `${process.env.BASE_URL}/${shortlink.code}`,
-        originalUrl: shortlink.url,
-        isNew: shortlink.isNew,
-      })),
-      Effect.catchAll((error) =>
-        Effect.succeed({
-          error: "Failed to shorten URL",
-          details: String(error),
-        }),
-      ),
+  const result: ShortenResult = await Effect.runPromise(
+    Effect.gen(function* () {
+      const body = yield* bodyEffect;
+      const validated = yield* validateShortenRequest(body);
+      return yield* createOrGetShortlink(validated.url);
+    }).pipe(
+      Effect.provide(AppConfigLive),
+      Effect.catchTags({
+        ParseError: (e) => {
+          console.error("Validation failed:", e);
+          return Effect.succeed({
+            error: "Format URL tidak valid. Pastikan URL sudah benar.",
+            status: 400 as const,
+          });
+        },
+        InvalidUrlError: (e) => {
+          console.warn("Invalid URL attempted:", e.url);
+          return Effect.succeed({
+            error: `URL tidak valid: ${e.url}`,
+            status: 400 as const,
+          });
+        },
+        MaxAttemptsError: (e) => {
+          console.error("Max attempts reached:", e.attempts);
+          return Effect.succeed({
+            error: "Gagal membuat kode unik. Silakan coba lagi.",
+            status: 503 as const,
+          });
+        },
+        RequestParseError: (e) => {
+          console.error("Request parse error:", e.cause);
+          return Effect.succeed({
+            error: "Terjadi kesalahan server. Silakan coba lagi.",
+            status: 500 as const,
+          });
+        },
+        RepositoryError: (e) => {
+          console.error("Database error:", e.cause);
+          return Effect.succeed({
+            error: "Terjadi kesalahan database. Silakan coba lagi.",
+            status: 500 as const,
+          });
+        },
+      }),
     ),
   );
 
   if ("error" in result) {
-    return c.html(
-      `
-      <div class="neo-card bg-red-100">
-        <p class="font-bold text-red-600">Gagal: ${result.error}</p>
-      </div>
-    `,
-      500,
-    );
+    return c.html(renderError(result.error), result.status);
   }
 
-  const message = result.isNew ? "Berhasil!" : "Link ini sudah ada!";
-
-  return c.html(`
-    <div class="neo-card bg-yellow-100" x-data="{ copied: false }">
-      <h3 class="text-2xl font-black mb-4">${message}</h3>
-
-      <div class="space-y-4">
-        <div>
-          <label class="font-bold text-sm uppercase block mb-2">
-          versi pendek link:
-          </label>
-          <div class="flex gap-2">
-            <input
-              x-ref="shortUrl"
-              type="text"
-              value="${result.shortUrl}"
-              readonly
-              class="neo-input flex-1"
-              :class="{ 'selected': copied }"
-              x-transition
-            >
-            <button
-              @click="
-                $refs.shortUrl.select();
-                navigator.clipboard.writeText($refs.shortUrl.value);
-                copied = true;
-                setTimeout(() => copied = false, 2000);
-              "
-              class="neo-copy-btn"
-              :class="{ 'copied': copied }"
-            >
-              <span x-show="!copied">Copy</span>
-              <span x-show="copied">Ter-Copy</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `);
+  return c.html(renderShortenSuccess(result.shortUrl, result.isNew), 200);
 });
 
 shortlinkRoutes.get("/:code", redirectLimiter, async (c) => {
   const code = c.req.param("code");
   const skipCountdown = c.req.query("direct") === "true";
 
-  const result = await Effect.runPromise(
-    getAndRedirect(code).pipe(
-      Effect.catchTags({
-        NotFound: () => Effect.succeed(null),
-        DatabaseError: (error) => {
-          console.error("Database error:", error.cause);
-          return Effect.succeed(null);
-        },
-      }),
-    ),
-  );
+  const result = await Effect.runPromise(getAndRedirect(code));
 
   if (!result) {
     return c.html(

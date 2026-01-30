@@ -1,58 +1,25 @@
-import { Effect, Data } from "effect";
+import { Effect } from "effect";
+import { AppConfig } from "../config/index.js";
+import { NotFoundError } from "../domain/errors.js";
 import {
   findShortlinkByCode,
   createShortlink as createShortlinkRepo,
   incrementClickCount as incrementClickCountRepo,
   findShortlinkByUrl,
 } from "../repositories/shortlink.js";
-import { generateCode } from "../utils/codeGenerator.js";
+import { generateUniqueCode } from "./codeGeneration.js";
+import { normalizeUrl } from "../utils/urlNormalizer.js";
 
-class DatabaseError extends Data.TaggedError("DatabaseError")<{
-  cause: unknown;
-}> {}
-
-export const generateUniqueCode = Effect.gen(function* () {
-  let code = generateCode();
-  let existing = yield* Effect.tryPromise({
-    try: () => findShortlinkByCode(code),
-    catch: (error) => new DatabaseError({ cause: error }),
-  });
-
-  while (existing) {
-    code = generateCode();
-    existing = yield* Effect.tryPromise({
-      try: () => findShortlinkByCode(code),
-      catch: (error) => new DatabaseError({ cause: error }),
-    });
-  }
-
-  return code;
-});
-
-export const createShortlink = (code: string, url: string) =>
-  Effect.tryPromise({
-    try: async () => {
-      const [result] = await createShortlinkRepo(code, url);
-      return result;
-    },
-    catch: (error) => new DatabaseError({ cause: error }),
-  });
-
-export const incrementClickCount = (code: string) =>
-  Effect.tryPromise({
-    try: () => incrementClickCountRepo(code),
-    catch: (error) => new DatabaseError({ cause: error }),
-  });
+// ini 2 biji pass through dari repo (gada logic jir)
+export const createShortlink = createShortlinkRepo;
+export const incrementClickCount = incrementClickCountRepo;
 
 export const getAndRedirect = (code: string) =>
   Effect.gen(function* () {
-    const shortlink = yield* Effect.tryPromise({
-      try: () => findShortlinkByCode(code),
-      catch: (error) => new DatabaseError({ cause: error }),
-    });
+    const shortlink = yield* findShortlinkByCode(code);
 
     if (!shortlink) {
-      return yield* Effect.fail({ _tag: "NotFound" as const, code });
+      return yield* Effect.fail(new NotFoundError({ code }));
     }
 
     Effect.runFork(incrementClickCount(code));
@@ -62,27 +29,26 @@ export const getAndRedirect = (code: string) =>
 
 export const createOrGetShortlink = (url: string) =>
   Effect.gen(function* () {
-    const existing = yield* Effect.tryPromise({
-      try: () => findShortlinkByUrl(url),
-      catch: (error) => new DatabaseError({ cause: error }),
-    });
+    const config = yield* AppConfig;
+
+    const normalizedUrl = yield* normalizeUrl(url);
+    const existing = yield* findShortlinkByUrl(normalizedUrl);
 
     if (existing) {
       return {
         code: existing.code,
-        url: existing.url,
+        shortUrl: `${config.baseUrl}/${existing.code}`,
         clicks: existing.clicks,
         isNew: false,
       };
     }
 
     const code = yield* generateUniqueCode;
-
-    const newShortlink = yield* createShortlink(code, url);
+    const newShortlink = yield* createShortlink(code, normalizedUrl);
 
     return {
       code: newShortlink.code,
-      url: newShortlink.url,
+      shortUrl: `${config.baseUrl}/${newShortlink.code}`,
       clicks: newShortlink.clicks || 0,
       isNew: true,
     };
