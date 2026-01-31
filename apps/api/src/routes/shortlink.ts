@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import { Effect, Schema } from "effect";
+import { Effect, ParseResult, Schema } from "effect";
 import { AppConfigLive } from "../config/index.js";
 import { BadRequestError, NotFoundError, ServiceUnavailableError, InternalServerError } from "../application/errors.js";
 import { getAndRedirect, createOrGetShortlink } from "../services/shortlink.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
-import { renderShortenSuccess, renderError, renderNotFound, renderCountdown } from "../views/shortlink.js";
+import { renderShortenSuccess, renderError, renderCountdown } from "../views/shortlink.js";
 
 const ONE_MINUTE_MS = 60 * 1000;
 const SHORTEN_RATE_LIMIT = 10;
@@ -31,51 +31,85 @@ const redirectLimiter = createRateLimiter({
 });
 
 shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
-  try {
-    const body = await c.req.parseBody();
-    const validated = Schema.decodeUnknownSync(ShortenRequestSchema)(body);
+  const result = await Effect.runPromise(
+    Effect.gen(function* () {
+      const body = yield* Effect.tryPromise({
+        try: () => c.req.parseBody(),
+        catch: () => new InternalServerError({ message: "Failed to parse request" }),
+      });
 
-    const shortlink = await Effect.runPromise(createOrGetShortlink(validated.url).pipe(Effect.provide(AppConfigLive)));
+      const validated = yield* Effect.try({
+        try: () => Schema.decodeUnknownSync(ShortenRequestSchema)(body),
+        catch: () => new BadRequestError({ message: "Format URL tidak valid" }),
+      });
 
-    return c.html(renderShortenSuccess(shortlink.shortUrl, shortlink.isNew), 200);
-  } catch (error) {
-    console.error("Shorten failed:", error);
-    if (error instanceof BadRequestError) {
-      return c.html(renderError(error.message), 400);
-    }
-    if (error instanceof ServiceUnavailableError) {
-      return c.html(renderError(error.message), 503);
-    }
-    if (error instanceof InternalServerError) {
-      return c.html(renderError(error.message), 500);
-    }
-    if (error instanceof NotFoundError) {
-      return c.html(renderNotFound(), 404);
-    }
-    return c.html(renderError("Server error"), 500);
+      return yield* createOrGetShortlink(validated.url);
+    }).pipe(
+      Effect.provide(AppConfigLive),
+      Effect.map((shortlink) => ({ success: true as const, shortlink })),
+      Effect.catchTags({
+        BadRequest: (e) =>
+          Effect.succeed({
+            success: false as const,
+            error: e.message,
+            status: 400 as const,
+          }),
+        ServiceUnavailable: (e) =>
+          Effect.succeed({
+            success: false as const,
+            error: e.message,
+            status: 503 as const,
+          }),
+        InternalError: (e) =>
+          Effect.succeed({
+            success: false as const,
+            error: e.message,
+            status: 500 as const,
+          }),
+      }),
+    ),
+  );
+
+  if (!result.success) {
+    return c.html(renderError(result.error, result.status), result.status);
   }
+
+  return c.html(renderShortenSuccess(result.shortlink.shortUrl, result.shortlink.isNew), 200);
 });
 
 shortlinkRoutes.get("/:code", redirectLimiter, async (c) => {
   const code = c.req.param("code");
   const skipCountdown = c.req.query("direct") === "true";
 
-  try {
-    const url = await Effect.runPromise(getAndRedirect(code));
+  const result = await Effect.runPromise(
+    getAndRedirect(code).pipe(
+      Effect.map((url) => ({ success: true as const, url })),
+      Effect.catchTags({
+        NotFound: (e) =>
+          Effect.succeed({
+            success: false as const,
+            error: e.message,
+            status: 404 as const,
+          }),
+        InternalError: (e) =>
+          Effect.succeed({
+            success: false as const,
+            error: e.message,
+            status: 500 as const,
+          }),
+      }),
+    ),
+  );
 
-    if (skipCountdown) {
-      return c.redirect(url, 302);
-    }
-
-    return c.html(renderCountdown(url), 200);
-  } catch (error) {
-    console.error("Redirect failed:", { code, error });
-    if (error instanceof NotFoundError) {
-      return c.html(renderNotFound(), 404);
-    }
-    if (error instanceof InternalServerError) {
-      return c.html(renderError(error.message), 500);
-    }
-    return c.html(renderError("Server error"), 500);
+  if (!result.success) {
+    return c.html(renderError(result.error, result.status), result.status);
   }
+
+  const { url } = result;
+
+  if (skipCountdown) {
+    return c.redirect(url, 302);
+  }
+
+  return c.html(renderCountdown(url), 200);
 });

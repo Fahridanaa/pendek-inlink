@@ -37,14 +37,14 @@ export const renderShortenSuccess = (url: string, isNew: boolean) =>
     </div>
   `;
 
-export const renderError = (message: string) =>
-  `
-    <div class="neo-card bg-red-100">
-      <p class="font-bold text-red-600">Gagal: ${message}</p>
-    </div>
-  `;
+// export const renderError = (message: string) =>
+//   `
+//     <div class="neo-card bg-red-100">
+//       <p class="font-bold text-red-600">Gagal: ${message}</p>
+//     </div>
+//   `;
 
-export const renderNotFound = () =>
+export const renderError = (message: string = "Server Error", code: number = 500) =>
   `
     <!DOCTYPE html>
     <html lang="en">
@@ -92,8 +92,8 @@ export const renderNotFound = () =>
       </head>
       <body>
         <div class="container">
-          <h1>404</h1>
-          <p>Link nggak ditemukan! Mungkin salah ketik atau udah dihapus.</p>
+          <h1>${code}</h1>
+          <p>${message}</p>
           <a href="http://localhost:3000">BUAT LINK BARU</a>
         </div>
       </body>
