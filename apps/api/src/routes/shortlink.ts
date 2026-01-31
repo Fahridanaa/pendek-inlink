@@ -94,6 +94,15 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
           });
         },
       }),
+
+      // for safety purposes
+      Effect.catchAllDefect((defect) => {
+        console.error("DEFECT (BUG IN CODE):", defect);
+        return Effect.succeed({
+          error: "Internal server error",
+          status: 500 as const,
+        });
+      }),
     ),
   );
 
