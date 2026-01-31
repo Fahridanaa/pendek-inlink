@@ -2,8 +2,9 @@ import { Effect } from "effect";
 import { db, shortlinks } from "db";
 import { eq, sql } from "drizzle-orm";
 import { RepositoryError } from "../domain/errors.js";
+import type { Shortlink } from "../domain/shortlink.js";
 
-export const findShortlinkByCode = (code: string) =>
+export const findShortlinkByCode = (code: string): Effect.Effect<Shortlink | null, RepositoryError> =>
   Effect.tryPromise({
     try: async () => {
       const result = await db.query.shortlinks.findFirst({
@@ -18,7 +19,7 @@ export const findShortlinkByCode = (code: string) =>
       }),
   });
 
-export const findShortlinkByUrl = (url: string) =>
+export const findShortlinkByUrl = (url: string): Effect.Effect<Shortlink | null, RepositoryError> =>
   Effect.tryPromise({
     try: async () => {
       const results = await db.select().from(shortlinks).where(eq(shortlinks.url, url)).limit(1);
@@ -31,7 +32,7 @@ export const findShortlinkByUrl = (url: string) =>
       }),
   });
 
-export const createShortlink = (code: string, url: string) =>
+export const createShortlink = (code: string, url: string): Effect.Effect<Shortlink, RepositoryError> =>
   Effect.tryPromise({
     try: async () => {
       const [result] = await db.insert(shortlinks).values({ code, url }).returning();
@@ -44,7 +45,7 @@ export const createShortlink = (code: string, url: string) =>
       }),
   });
 
-export const incrementClickCount = (code: string) =>
+export const incrementClickCount = (code: string): Effect.Effect<void, RepositoryError> =>
   Effect.tryPromise({
     try: () =>
       db
