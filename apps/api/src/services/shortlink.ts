@@ -1,6 +1,12 @@
 import { Effect } from "effect";
 import { AppConfig } from "../config/index.js";
-import { NotFoundError } from "../domain/errors.js";
+import {
+  BadRequestError,
+  NotFoundError as AppNotFoundError,
+  ServiceUnavailableError,
+  InternalServerError,
+} from "../application/errors.js";
+import { NotFoundError as DomainNotFoundError } from "../domain/errors.js";
 import {
   findShortlinkByCode,
   createShortlink as createShortlinkRepo,
@@ -46,13 +52,21 @@ export const getAndRedirect = (code: string) =>
     const shortlink = yield* findShortlinkByCode(code);
 
     if (!shortlink) {
-      return yield* Effect.fail(new NotFoundError({ code }));
+      return yield* Effect.fail(new DomainNotFoundError({ code }));
     }
 
     Effect.runFork(incrementClickCount(code));
 
     return shortlink.url;
-  });
+  }).pipe(
+    Effect.catchTags({
+      NotFoundError: (e) => Effect.fail(new AppNotFoundError({ message: `Kode tidak ditemukan: ${e.code}` })),
+      RepositoryError: (e) => {
+        console.error("Database error:", e.cause);
+        return Effect.fail(new InternalServerError({ message: "Database error" }));
+      },
+    }),
+  );
 
 export const createOrGetShortlink = (url: string) =>
   Effect.gen(function* () {
@@ -65,4 +79,13 @@ export const createOrGetShortlink = (url: string) =>
 
     const isNew = !existing;
     return formatShortlinkResponse(shortlink, config.baseUrl, isNew);
-  });
+  }).pipe(
+    Effect.catchTags({
+      InvalidUrlError: (e) => Effect.fail(new BadRequestError({ message: `URL tidak valid: ${e.url}` })),
+      MaxAttemptsError: () => Effect.fail(new ServiceUnavailableError({ message: "Gagal membuat kode unik" })),
+      RepositoryError: (e) => {
+        console.error("Database error:", e.cause);
+        return Effect.fail(new InternalServerError({ message: "Database error" }));
+      },
+    }),
+  );
