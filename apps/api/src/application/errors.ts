@@ -15,3 +15,9 @@ export class ServiceUnavailableError extends Data.TaggedError("ServiceUnavailabl
 export class InternalServerError extends Data.TaggedError("InternalError")<{
   readonly message: string;
 }> {}
+
+export class RateLimitError extends Data.TaggedError("RateLimitError")<{
+  readonly limit: number;
+  readonly resetTime: number;
+  readonly secondsLeft: number;
+}> {}

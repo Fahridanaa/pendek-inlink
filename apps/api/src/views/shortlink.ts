@@ -198,3 +198,67 @@ export const renderCountdown = (url: string) =>
     </body>
     </html>
   `;
+
+export const renderRateLimitModal = (secondsLeft: number): string =>
+  `
+    <div id="result"></div>
+    <div hx-swap-oob="beforeend:body">
+      <div
+        id="rate-limit-modal"
+        class="fixed inset-0 flex items-center justify-center z-1 p-4"
+        style="animation: fadeIn 0.2s ease"
+      >
+        <div class="bg-black opacity-50 absolute inset-0"></div>
+        <div class="neo-card bg-red-100 max-w-md w-full">
+          <h3 class="text-2xl font-black text-red-600 mb-4">SABAR WOI!</h3>
+          <p class="font-bold mb-4">Terlalu banyak request! Tunggu 1 menit ya.</p>
+          <div class="bg-white border-4 border-black p-4 mb-4">
+            <p class="text-sm mb-2 font-bold">Reset dalam:</p>
+            <p class="font-black text-5xl text-center" id="countdown-timer">${secondsLeft}s</p>
+          </div>
+          <button
+            onclick="
+              const modal = document.getElementById('rate-limit-modal');
+              modal.style.animation = 'fadeOut 0.2s ease';
+              setTimeout(() => modal.remove(), 200);
+            "
+            class="neo-btn w-full"
+          >
+            OKE SIAP
+          </button>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function() {
+        let secondsLeft = ${secondsLeft};
+        const timer = document.getElementById('countdown-timer');
+        const modal = document.getElementById('rate-limit-modal');
+
+        const interval = setInterval(() => {
+          secondsLeft--;
+          if (timer) {
+            timer.textContent = secondsLeft + 's';
+          }
+
+          if (secondsLeft <= 0) {
+            clearInterval(interval);
+            if (modal) {
+              modal.style.animation = 'fadeOut 0.2s ease';
+              setTimeout(() => modal.remove(), 200);
+            }
+          }
+        }, 1000);
+      })();
+    </script>
+    <style>
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+    </style>
+  `;
