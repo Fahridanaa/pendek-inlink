@@ -7,7 +7,7 @@ import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { renderShortenSuccess, renderError, renderCountdown } from "../views/shortlink.js";
 
 const ONE_MINUTE_MS = 60 * 1000;
-const SHORTEN_RATE_LIMIT = 1;
+const SHORTEN_RATE_LIMIT = 10;
 const REDIRECT_RATE_LIMIT = 100;
 
 const ShortenRequestSchema = Schema.Struct({
