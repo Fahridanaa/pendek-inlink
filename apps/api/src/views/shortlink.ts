@@ -94,7 +94,7 @@ export const renderError = (message: string = "Server Error", code: number = 500
         <div class="container">
           <h1>${code}</h1>
           <p>${message}</p>
-          <a href="http://localhost:3000">BUAT LINK BARU</a>
+          <a href="https://pendekinlink.fahridanaa.my.id">BUAT LINK BARU</a>
         </div>
       </body>
     </html>
