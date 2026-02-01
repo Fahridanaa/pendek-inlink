@@ -1,9 +1,9 @@
 import { Effect, Context, Layer, Schema } from "effect";
 
 const EnvSchema = Schema.Struct({
-  BASE_URL: Schema.String,
-  DATABASE_URL: Schema.String,
-  PORT: Schema.Number.pipe(Schema.int()),
+  BASE_URL: Schema.String.pipe(Schema.nonEmptyString()),
+  DATABASE_URL: Schema.String.pipe(Schema.nonEmptyString()),
+  PORT: Schema.Number.pipe(Schema.int(), Schema.positive()),
   NODE_ENV: Schema.Literal("development", "production", "test"),
 });
 
@@ -19,15 +19,30 @@ export class AppConfig extends Context.Tag("AppConfig")<
   }
 >() {}
 
+// private helper
+function requireEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    console.error(`Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+  return value;
+}
+
 const loadEnv = Effect.gen(function* () {
   const rawEnv: Env = {
-    BASE_URL: process.env.BASE_URL || "http://localhost:4000",
-    DATABASE_URL: process.env.DATABASE_URL || "postgres://localhost/pendekinlink",
-    PORT: parseInt(process.env.PORT || "4000"),
-    NODE_ENV: (process.env.NODE_ENV || "development") as "development" | "production" | "test",
+    BASE_URL: requireEnv("BASE_URL"),
+    DATABASE_URL: requireEnv("DATABASE_URL"),
+    PORT: parseInt(requireEnv("PORT")),
+    NODE_ENV: requireEnv("NODE_ENV") as Env["NODE_ENV"],
   };
 
-  const validated = yield* Schema.decodeUnknown(EnvSchema)(rawEnv);
+  const validated = yield* Schema.decodeUnknown(EnvSchema)(rawEnv).pipe(
+    Effect.mapError((error) => {
+      console.error("Environment validation failed:", error);
+      process.exit(1);
+    }),
+  );
 
   return {
     baseUrl: validated.BASE_URL,
