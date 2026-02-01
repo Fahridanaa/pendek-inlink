@@ -1,13 +1,10 @@
 import { Hono } from "hono";
-import { Effect, Layer, Schema } from "effect";
-import { AppConfigLive } from "../config/index.js";
-import { BadRequestError, InternalServerError } from "../application/errors.js";
+import { Effect, Schema } from "effect";
+import { BadRequestError, InternalServerError, catchHttpErrors } from "../application/errors.js";
 import { getAndRedirect, createOrGetShortlink } from "../services/shortlink.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { renderShortenSuccess, renderError, renderCountdown, renderErrorModal } from "../views/shortlink.js";
-import { LoggerServiceLive } from "../services/logger.js";
-
-const AppLive = Layer.merge(AppConfigLive, LoggerServiceLive);
+import { type HonoEnv } from "../middleware/requestContext.js";
 
 const ONE_MINUTE_MS = 60 * 1000;
 const SHORTEN_RATE_LIMIT = 10;
@@ -18,7 +15,7 @@ const ShortenRequestSchema = Schema.Struct({
   customSlug: Schema.optional(Schema.String.pipe(Schema.nonEmptyString())),
 });
 
-export const shortlinkRoutes = new Hono();
+export const shortlinkRoutes = new Hono<HonoEnv>();
 
 const shortenLimiter = createRateLimiter({
   windowMs: ONE_MINUTE_MS,
@@ -48,27 +45,8 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
       return yield* createOrGetShortlink(validated.url, validated.customSlug);
     }).pipe(
       Effect.map((shortlink) => ({ success: true as const, shortlink })),
-      Effect.catchTags({
-        BadRequest: (e) =>
-          Effect.succeed({
-            success: false as const,
-            error: e.message,
-            status: 400 as const,
-          }),
-        ServiceUnavailable: (e) =>
-          Effect.succeed({
-            success: false as const,
-            error: e.message,
-            status: 503 as const,
-          }),
-        InternalError: (e) =>
-          Effect.succeed({
-            success: false as const,
-            error: e.message,
-            status: 500 as const,
-          }),
-      }),
-      Effect.provide(AppLive),
+      catchHttpErrors,
+      Effect.provide(c.get("appLayer")),
     ),
   );
 
@@ -86,21 +64,8 @@ shortlinkRoutes.get("/:code", redirectLimiter, async (c) => {
   const result = await Effect.runPromise(
     getAndRedirect(code).pipe(
       Effect.map((url) => ({ success: true as const, url })),
-      Effect.catchTags({
-        NotFound: (e) =>
-          Effect.succeed({
-            success: false as const,
-            error: e.message,
-            status: 404 as const,
-          }),
-        InternalError: (e) =>
-          Effect.succeed({
-            success: false as const,
-            error: e.message,
-            status: 500 as const,
-          }),
-      }),
-      Effect.provide(LoggerServiceLive),
+      catchHttpErrors,
+      Effect.provide(c.get("appLayer")),
     ),
   );
 
