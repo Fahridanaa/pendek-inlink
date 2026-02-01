@@ -4,7 +4,7 @@ import { AppConfigLive } from "../config/index.js";
 import { BadRequestError, InternalServerError } from "../application/errors.js";
 import { getAndRedirect, createOrGetShortlink } from "../services/shortlink.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
-import { renderShortenSuccess, renderError, renderCountdown } from "../views/shortlink.js";
+import { renderShortenSuccess, renderError, renderCountdown, renderErrorModal } from "../views/shortlink.js";
 
 const ONE_MINUTE_MS = 60 * 1000;
 const SHORTEN_RATE_LIMIT = 10;
@@ -12,6 +12,7 @@ const REDIRECT_RATE_LIMIT = 100;
 
 const ShortenRequestSchema = Schema.Struct({
   url: Schema.String.pipe(Schema.nonEmptyString()),
+  customSlug: Schema.optional(Schema.String.pipe(Schema.nonEmptyString())),
 });
 
 export const shortlinkRoutes = new Hono();
@@ -41,7 +42,7 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
         catch: () => new BadRequestError({ message: "Format URL tidak valid" }),
       });
 
-      return yield* createOrGetShortlink(validated.url);
+      return yield* createOrGetShortlink(validated.url, validated.customSlug);
     }).pipe(
       Effect.provide(AppConfigLive),
       Effect.map((shortlink) => ({ success: true as const, shortlink })),
@@ -69,7 +70,7 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
   );
 
   if (!result.success) {
-    return c.html(renderError(result.error, result.status), result.status);
+    return c.html(renderErrorModal(result.error, result.status), 200);
   }
 
   return c.html(renderShortenSuccess(result.shortlink.shortUrl, result.shortlink.isNew), 200);
@@ -100,7 +101,7 @@ shortlinkRoutes.get("/:code", redirectLimiter, async (c) => {
   );
 
   if (!result.success) {
-    return c.html(renderError(result.error, result.status), result.status);
+    return c.html(renderError(result.error, result.status), 200);
   }
 
   const { url } = result;

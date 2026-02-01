@@ -42,6 +42,21 @@ const createNewShortlink = (normalizedUrl: string) =>
     return yield* createShortlinkRepo(code, normalizedUrl);
   });
 
+const validateCustomSlug = (slug: string) =>
+  Effect.gen(function* () {
+    const existing = yield* findShortlinkByCode(slug);
+    if (existing) {
+      return yield* Effect.fail(new BadRequestError({ message: "Slug custom sudah dipakai!" }));
+    }
+    return slug;
+  });
+
+const createCustomShortlink = (normalizedUrl: string, customSlug: string) =>
+  Effect.gen(function* () {
+    yield* validateCustomSlug(customSlug);
+    return yield* createShortlinkRepo(customSlug, normalizedUrl);
+  });
+
 // public
 // ini 2 biji pass through dari repo (gada logic jir)
 export const createShortlink = createShortlinkRepo;
@@ -68,17 +83,22 @@ export const getAndRedirect = (code: string) =>
     }),
   );
 
-export const createOrGetShortlink = (url: string) =>
+export const createOrGetShortlink = (url: string, customSlug?: string) =>
   Effect.gen(function* () {
     const config = yield* AppConfig;
-
     const normalizedUrl = yield* normalizeUrl(url);
+
     const existing = yield* findShortlinkByUrl(normalizedUrl);
 
-    const shortlink = existing ? existing : yield* createNewShortlink(normalizedUrl);
+    if (existing) {
+      return formatShortlinkResponse(existing, config.baseUrl, false);
+    }
 
-    const isNew = !existing;
-    return formatShortlinkResponse(shortlink, config.baseUrl, isNew);
+    const shortlink = customSlug
+      ? yield* createCustomShortlink(normalizedUrl, customSlug)
+      : yield* createNewShortlink(normalizedUrl);
+
+    return formatShortlinkResponse(shortlink, config.baseUrl, true);
   }).pipe(
     Effect.catchTags({
       InvalidUrlError: (e) => Effect.fail(new BadRequestError({ message: `URL tidak valid: ${e.url}` })),
