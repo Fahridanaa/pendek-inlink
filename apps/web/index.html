@@ -21,35 +21,111 @@
 
     <main class="flex-1 p-6 md:p-8 bg-[#f4f4f0]">
       <div class="max-w-4xl mx-auto my-12 sm:my-24">
-        <div class="neo-card mb-8">
-          <form
-            id="shorten-form"
-            hx-post="/api/shorten-html"
-            hx-target="#result"
-            hx-swap="innerHTML"
-            hx-target-error="#modal-container"
-            hx-disabled-elt="#submit-btn"
-            hx-indicator="#submit-btn"
-            class="space-y-4"
-          >
-            <div>
-              <input
-                type="url"
-                name="url"
-                class="neo-input"
-                placeholder="http://example.com/masukkin-link-mu-yang-panjang-itu"
-                required
-                autocomplete="off"
-              />
+        <div x-data="{ activeTab: 'quick' }">
+          <!-- Tabs -->
+          <div class="neo-tabs">
+            <button
+              type="button"
+              class="neo-tab"
+              :class="{ 'active': activeTab === 'quick' }"
+              @click="activeTab = 'quick'"
+            >
+              Quick
+            </button>
+            <button
+              type="button"
+              class="neo-tab"
+              :class="{ 'active': activeTab === 'custom' }"
+              @click="activeTab = 'custom'"
+            >
+              Custom
+            </button>
+          </div>
+
+          <!-- Tab Content -->
+          <div class="neo-card neo-tab-content mb-8">
+            <!-- Quick Shorten Tab -->
+            <div class="neo-tab-panel" :class="{ 'active': activeTab === 'quick' }">
+              <form
+                id="shorten-form"
+                hx-post="/api/shorten-html"
+                hx-target="#result"
+                hx-swap="innerHTML"
+                hx-target-error="#modal-container"
+                hx-disabled-elt="#submit-btn-quick"
+                hx-indicator="#submit-btn-quick"
+                class="space-y-4"
+              >
+                <div>
+                  <input
+                    type="url"
+                    name="url"
+                    class="neo-input"
+                    placeholder="http://example.com/masukkin-link-mu-yang-panjang-itu"
+                    required
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div class="flex gap-4 items-center">
+                  <button type="submit" id="submit-btn-quick" class="neo-btn">
+                    <span class="btn-text">PENDEKIN!!!</span>
+                    <span class="btn-loading htmx-indicator">Prosesss...</span>
+                  </button>
+                </div>
+              </form>
             </div>
 
-            <div class="flex gap-4 items-center">
-              <button type="submit" id="submit-btn" class="neo-btn">
-                <span class="btn-text">PENDEKIN!!!</span>
-                <span class="btn-loading htmx-indicator">Prosesss...</span>
-              </button>
+            <!-- Custom Link Tab -->
+            <div class="neo-tab-panel" :class="{ 'active': activeTab === 'custom' }">
+              <form
+                id="custom-form"
+                hx-post="/api/shorten-html"
+                hx-target="#result"
+                hx-swap="innerHTML"
+                hx-target-error="#modal-container"
+                hx-disabled-elt="#submit-btn-custom"
+                hx-indicator="#submit-btn-custom"
+                class="space-y-4"
+              >
+                <div>
+                  <input
+                    type="url"
+                    name="url"
+                    class="neo-input"
+                    placeholder="http://example.com/masukkin-link-mu-yang-panjang-itu"
+                    required
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div>
+                  <div class="flex items-stretch">
+                    <span class="neo-input bg-gray-100 w-auto! border-r-0 items-center text-black"
+                      >https://pendekinlink.fahridanaa.my.id/</span
+                    >
+                    <input
+                      type="text"
+                      name="customSlug"
+                      class="neo-input flex-1"
+                      placeholder="custom-slug-mu"
+                      pattern="[a-zA-Z0-9_-]+"
+                      title="Hanya huruf, angka, underscore, dan dash"
+                      required
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex gap-4 items-center">
+                  <button type="submit" id="submit-btn-custom" class="neo-btn">
+                    <span class="btn-text">BIKIN CUSTOM!!!</span>
+                    <span class="btn-loading htmx-indicator">Prosesss...</span>
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         </div>
         <div id="result"></div>
       </div>

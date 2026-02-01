@@ -8,7 +8,7 @@
   --primary: #000000;
   --secondary: #ffff00;
   --accent: #ff00ff;
-  --bg: #ffffff;
+  --bg: #f4f4f0;
   --border-width: 4px;
   --shadow-offset: 8px;
 }
@@ -91,6 +91,54 @@ body {
   font-weight: 900;
   display: inline-block;
   box-shadow: 4px 4px 0 var(--primary);
+}
+
+.neo-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: -4px;
+  position: relative;
+  z-index: 1;
+}
+
+.neo-tab {
+  background: #e0e0dc;
+  border: var(--border-width) solid var(--primary);
+  padding: 0.75rem 1.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  position: relative;
+}
+
+.neo-tab:not(:first-child) {
+  margin-left: -4px;
+}
+
+.neo-tab:hover:not(.active) {
+  background: #d0d0cc;
+}
+
+.neo-tab.active {
+  background: var(--bg);
+  border-bottom-color: var(--bg);
+  z-index: 2;
+}
+
+.neo-tab-content {
+  position: relative;
+  z-index: 0;
+}
+
+.neo-tab-panel {
+  display: none;
+}
+
+.neo-tab-panel.active {
+  display: block;
 }
 
 .neo-copy-btn {
