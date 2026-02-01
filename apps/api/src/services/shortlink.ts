@@ -17,6 +17,8 @@ import { generateUniqueCode } from "./codeGeneration.js";
 import { normalizeUrl } from "../utils/urlNormalizer.js";
 import { RequestLoggerService } from "./logger.js";
 
+const getLogger = Effect.map(RequestLoggerService, (l) => l.child("shortlink"));
+
 export interface ShortlinkResponse {
   code: string;
   shortUrl: string;
@@ -65,7 +67,7 @@ export const incrementClickCount = incrementClickCountRepo;
 
 export const getAndRedirect = (code: string) =>
   Effect.gen(function* () {
-    const logger = (yield* RequestLoggerService).child("shortlink");
+    const logger = yield* getLogger;
     const shortlink = yield* findShortlinkByCode(code);
 
     if (!shortlink) {
@@ -81,7 +83,7 @@ export const getAndRedirect = (code: string) =>
       NotFoundError: (e) => Effect.fail(new AppNotFoundError({ message: `Kode tidak ditemukan: ${e.code}` })),
       RepositoryError: (e) =>
         Effect.gen(function* () {
-          const logger = (yield* RequestLoggerService).child("shortlink");
+          const logger = yield* getLogger;
           yield* logger.error("Database error in getAndRedirect", { cause: String(e.cause) });
           return yield* Effect.fail(new InternalServerError({ message: "Database error" }));
         }),
@@ -91,7 +93,7 @@ export const getAndRedirect = (code: string) =>
 export const createOrGetShortlink = (url: string, customSlug?: string) =>
   Effect.gen(function* () {
     const config = yield* AppConfig;
-    const logger = (yield* RequestLoggerService).child("shortlink");
+    const logger = yield* getLogger;
     const normalizedUrl = yield* normalizeUrl(url);
 
     const existing = yield* findShortlinkByUrl(normalizedUrl);
@@ -113,7 +115,7 @@ export const createOrGetShortlink = (url: string, customSlug?: string) =>
       MaxAttemptsError: () => Effect.fail(new ServiceUnavailableError({ message: "Gagal membuat kode unik" })),
       RepositoryError: (e) =>
         Effect.gen(function* () {
-          const logger = (yield* RequestLoggerService).child("shortlink");
+          const logger = yield* getLogger;
           yield* logger.error("Database error in createOrGetShortlink", { cause: String(e.cause) });
           return yield* Effect.fail(new InternalServerError({ message: "Database error" }));
         }),
