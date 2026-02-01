@@ -98,7 +98,6 @@ body {
   gap: 0;
   margin-bottom: -4px;
   position: relative;
-  z-index: 1;
 }
 
 .neo-tab {
@@ -125,7 +124,6 @@ body {
 .neo-tab.active {
   background: var(--bg);
   border-bottom-color: var(--bg);
-  z-index: 2;
 }
 
 .neo-tab-content {

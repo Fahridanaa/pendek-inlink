@@ -262,3 +262,25 @@ export const renderRateLimitModal = (secondsLeft: number): string =>
       }
     </style>
   `;
+
+export const renderErrorModal = (message: string = "Server Error", code: number = 500) => `
+    <div id="error-modal" class="fixed inset-0 flex items-center justify-center">
+      <div class="bg-black opacity-50 absolute inset-0 z-10"></div>
+      <div class="max-w-md w-full z-20">
+        <div class="bg-white border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0)] p-12 max-w-lg w-full text-center">
+          <h1 class="text-6xl font-bold mb-1">${code}</h1>
+          <p class="text-lg font-semibold mb-2">${message}</p>
+          <button
+            onclick="
+              const modal = document.getElementById('error-modal');
+              modal.style.animation = 'fadeOut 0.2s ease';
+              setTimeout(() => modal.remove(), 200);
+            "
+            class="neo-btn w-full"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+`;
