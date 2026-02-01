@@ -1,21 +1,24 @@
 import type { Context, Next } from "hono";
-import { Effect } from "effect";
+import { Effect, Runtime } from "effect";
 import { checkRateLimit, type RateLimiterConfig } from "../services/rateLimiter.js";
 import { renderRateLimitModal } from "../views/shortlink.js";
+import type { HonoEnv } from "./requestContext.js";
 
 export function createRateLimiter(config: RateLimiterConfig) {
-  return async (c: Context, next: Next) => {
+  return async (c: Context<HonoEnv>, next: Next) => {
     const ip = c.req.header("x-forwarded-for") || c.req.header("x-real-ip") || "unknown";
 
     let key: string;
     if (config.keyType === "ip+code") {
       const code = c.req.param("code") || "unknown";
-      key = `ratelimit:${ip}:${code}`;
+      key = `${ip}:${code}`;
     } else {
-      key = `ratelimit:${ip}`;
+      key = ip;
     }
 
-    const result = await Effect.runPromise(
+    const runtime = c.get("runtime");
+
+    const result = await Runtime.runPromise(runtime)(
       checkRateLimit(key, config).pipe(
         Effect.catchTag("RateLimitError", (error) =>
           Effect.succeed({
@@ -23,6 +26,14 @@ export function createRateLimiter(config: RateLimiterConfig) {
             limit: error.limit,
             resetTime: error.resetTime,
             secondsLeft: error.secondsLeft,
+          }),
+        ),
+        Effect.catchTag("RateLimitStoreError", () =>
+          // graceful degradation
+          Effect.succeed({
+            allowed: true as const,
+            remaining: config.limit,
+            resetTime: Date.now() + config.windowMs,
           }),
         ),
       ),
