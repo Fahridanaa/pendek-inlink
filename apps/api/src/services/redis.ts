@@ -10,6 +10,7 @@ export class RedisError extends Data.TaggedError("RedisError")<{
 export class RedisService extends Context.Tag("RedisService")<
   RedisService,
   {
+    readonly ping: () => Effect.Effect<boolean, RedisError>;
     readonly incrWithExpire: (
       key: string,
       expireSeconds: number,
@@ -31,6 +32,15 @@ export const RedisServiceLive = Layer.scoped(
     yield* Effect.addFinalizer(() => Effect.promise(() => client.quit()));
 
     return {
+      ping: () =>
+        Effect.tryPromise({
+          try: async () => {
+            const result = await client.ping();
+            return result === "PONG";
+          },
+          catch: (error) => new RedisError({ message: "Redis PING failed", cause: error }),
+        }),
+
       incrWithExpire: (key: string, expireSeconds: number) =>
         Effect.gen(function* () {
           const count = yield* Effect.tryPromise({

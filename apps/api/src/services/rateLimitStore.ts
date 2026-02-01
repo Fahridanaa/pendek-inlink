@@ -14,6 +14,7 @@ export interface IncrementResult {
 export class RateLimitStore extends Context.Tag("RateLimitStore")<
   RateLimitStore,
   {
+    readonly ping: () => Effect.Effect<boolean, RateLimitStoreError>;
     readonly increment: (key: string, windowSeconds: number) => Effect.Effect<IncrementResult, RateLimitStoreError>;
   }
 >() {}
@@ -27,6 +28,9 @@ export const RateLimitStoreRedis = Layer.effect(
     const redis = yield* RedisService;
 
     return {
+      ping: () =>
+        redis.ping().pipe(Effect.mapError((e) => new RateLimitStoreError({ message: e.message, cause: e.cause }))),
+
       increment: (key: string, windowSeconds: number) =>
         redis
           .incrWithExpire(`${RATE_LIMIT_PREFIX}${key}`, windowSeconds)
@@ -64,6 +68,8 @@ export const RateLimitStoreMemory = Layer.scoped(
     yield* Effect.addFinalizer(() => Effect.sync(() => clearInterval(cleanupInterval)));
 
     return {
+      ping: () => Effect.succeed(true),
+
       increment: (key: string, windowSeconds: number) =>
         Effect.gen(function* () {
           const now = Date.now();
