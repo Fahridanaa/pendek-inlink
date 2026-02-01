@@ -1,10 +1,13 @@
 import { Hono } from "hono";
-import { Effect, Schema } from "effect";
+import { Effect, Layer, Schema } from "effect";
 import { AppConfigLive } from "../config/index.js";
 import { BadRequestError, InternalServerError } from "../application/errors.js";
 import { getAndRedirect, createOrGetShortlink } from "../services/shortlink.js";
 import { createRateLimiter } from "../middleware/rateLimiter.js";
 import { renderShortenSuccess, renderError, renderCountdown, renderErrorModal } from "../views/shortlink.js";
+import { LoggerServiceLive } from "../services/logger.js";
+
+const AppLive = Layer.merge(AppConfigLive, LoggerServiceLive);
 
 const ONE_MINUTE_MS = 60 * 1000;
 const SHORTEN_RATE_LIMIT = 10;
@@ -44,7 +47,6 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
 
       return yield* createOrGetShortlink(validated.url, validated.customSlug);
     }).pipe(
-      Effect.provide(AppConfigLive),
       Effect.map((shortlink) => ({ success: true as const, shortlink })),
       Effect.catchTags({
         BadRequest: (e) =>
@@ -66,6 +68,7 @@ shortlinkRoutes.post("/api/shorten-html", shortenLimiter, async (c) => {
             status: 500 as const,
           }),
       }),
+      Effect.provide(AppLive),
     ),
   );
 
@@ -97,6 +100,7 @@ shortlinkRoutes.get("/:code", redirectLimiter, async (c) => {
             status: 500 as const,
           }),
       }),
+      Effect.provide(LoggerServiceLive),
     ),
   );
 

@@ -15,6 +15,7 @@ import {
 } from "../repositories/shortlink.js";
 import { generateUniqueCode } from "./codeGeneration.js";
 import { normalizeUrl } from "../utils/urlNormalizer.js";
+import { LoggerService } from "./logger.js";
 
 export interface ShortlinkResponse {
   code: string;
@@ -64,33 +65,39 @@ export const incrementClickCount = incrementClickCountRepo;
 
 export const getAndRedirect = (code: string) =>
   Effect.gen(function* () {
+    const logger = (yield* LoggerService).child("shortlink");
     const shortlink = yield* findShortlinkByCode(code);
 
     if (!shortlink) {
       return yield* Effect.fail(new DomainNotFoundError({ code }));
     }
 
+    yield* logger.debug("Redirecting shortlink", { code, url: shortlink.url });
     Effect.runFork(incrementClickCount(code));
 
     return shortlink.url;
   }).pipe(
     Effect.catchTags({
       NotFoundError: (e) => Effect.fail(new AppNotFoundError({ message: `Kode tidak ditemukan: ${e.code}` })),
-      RepositoryError: (e) => {
-        console.error("Database error:", e.cause);
-        return Effect.fail(new InternalServerError({ message: "Database error" }));
-      },
+      RepositoryError: (e) =>
+        Effect.gen(function* () {
+          const logger = (yield* LoggerService).child("shortlink");
+          yield* logger.error("Database error in getAndRedirect", { cause: String(e.cause) });
+          return yield* Effect.fail(new InternalServerError({ message: "Database error" }));
+        }),
     }),
   );
 
 export const createOrGetShortlink = (url: string, customSlug?: string) =>
   Effect.gen(function* () {
     const config = yield* AppConfig;
+    const logger = (yield* LoggerService).child("shortlink");
     const normalizedUrl = yield* normalizeUrl(url);
 
     const existing = yield* findShortlinkByUrl(normalizedUrl);
 
     if (existing) {
+      yield* logger.debug("Found existing shortlink", { code: existing.code, url: normalizedUrl });
       return formatShortlinkResponse(existing, config.baseUrl, false);
     }
 
@@ -98,14 +105,17 @@ export const createOrGetShortlink = (url: string, customSlug?: string) =>
       ? yield* createCustomShortlink(normalizedUrl, customSlug)
       : yield* createNewShortlink(normalizedUrl);
 
+    yield* logger.info("Created new shortlink", { code: shortlink.code, url: normalizedUrl, customSlug });
     return formatShortlinkResponse(shortlink, config.baseUrl, true);
   }).pipe(
     Effect.catchTags({
       InvalidUrlError: (e) => Effect.fail(new BadRequestError({ message: `URL tidak valid: ${e.url}` })),
       MaxAttemptsError: () => Effect.fail(new ServiceUnavailableError({ message: "Gagal membuat kode unik" })),
-      RepositoryError: (e) => {
-        console.error("Database error:", e.cause);
-        return Effect.fail(new InternalServerError({ message: "Database error" }));
-      },
+      RepositoryError: (e) =>
+        Effect.gen(function* () {
+          const logger = (yield* LoggerService).child("shortlink");
+          yield* logger.error("Database error in createOrGetShortlink", { cause: String(e.cause) });
+          return yield* Effect.fail(new InternalServerError({ message: "Database error" }));
+        }),
     }),
   );
